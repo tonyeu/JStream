@@ -42,6 +42,31 @@ export default class JStream<T> {
     return values;
   }
 
+  protected execute<B>(element: T | B): T | B {
+    let transformedElement: T | B = element;
+    try {
+      this.pipe.forEach((object: IStreamObject) => {
+        transformedElement = this.baseReducer(transformedElement, object);
+      });
+    } catch {
+      throw new Error(ErrorType.Empty);
+    }
+    return transformedElement;
+  }
+
+  protected baseReducer<B>(element: T | B, object: IStreamObject): T | B {
+    let transformedElement: T | B = element;
+    switch (object.type) {
+      case Type.Filter:
+        transformedElement = this.executeFilter(transformedElement as T, object.callback);
+        break;
+      case Type.Map:
+        transformedElement = this.executeMap(transformedElement as T, object.callback);
+        break;
+    }
+    return transformedElement;
+  }
+
   private callStream<B>(): T | B {
     let val: T | B;
     if (this.previousStream) {
@@ -56,25 +81,6 @@ export default class JStream<T> {
     }
     val = this.execute(val);
     return val;
-  }
-
-  private execute<B>(element: T | B): T | B {
-    let transformedElement: T | B = element;
-    try {
-      this.pipe.forEach((object: IStreamObject) => {
-        switch (object.type) {
-          case Type.Filter:
-            transformedElement = this.executeFilter(transformedElement as T, object.callback);
-            break;
-          case Type.Map:
-            transformedElement = this.executeMap(transformedElement as T, object.callback);
-            break;
-        }
-      });
-    } catch {
-      throw new Error(ErrorType.Empty);
-    }
-    return transformedElement;
   }
 
   private executeFilter(element: T, callback: (obj: T) => boolean): T {
