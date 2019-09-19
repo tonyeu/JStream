@@ -2,9 +2,11 @@
   "name": "jstream",
   "version": "0.0.1",
   "description": "Streams library",
+  "main": "lib/index.js",
   "scripts": {
     "build": "tsc && npm run lint",
     "clean": "rimraf ./lib",
+    "cleanbuild": "npm run clean && npm run build",
     "lint": "tslint -c tslint.json 'src/**/*.ts'",
     "tsc": "tsc"
   },

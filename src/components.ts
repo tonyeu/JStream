@@ -1,26 +1,26 @@
-export enum Type {
+export enum StreamType {
   Map = "map",
   Filter = "filter",
 }
 
 export interface IMapStreamObject<T, B> extends IStreamObject {
-  type: Type.Map;
+  type: StreamType.Map;
   callback: (i: T) => B;
 }
 export interface IFilterStreamObject<T> extends IStreamObject {
-  type: Type.Filter;
+  type: StreamType.Filter;
   callback: (i: T) => boolean;
 }
 
 export interface IStreamObject {
-  type: Type;
+  type: StreamType;
   callback: any;
 }
 
 export const MapStreamObject = <T, B>(callback: (i: T) => B) => {
-  return { type: Type.Map, callback } as IMapStreamObject<T, B>;
+  return { type: StreamType.Map, callback } as IMapStreamObject<T, B>;
 };
 
 export const FilterStreamObject = <T>(callback: (i: T) => boolean) => {
-  return { type: Type.Filter, callback } as IFilterStreamObject<T>;
+  return { type: StreamType.Filter, callback } as IFilterStreamObject<T>;
 };

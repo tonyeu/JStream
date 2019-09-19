@@ -1,6 +1,6 @@
-import { FilterStreamObject, IStreamObject, MapStreamObject, Type } from "./model";
+import { FilterStreamObject, IStreamObject, MapStreamObject, StreamType } from "./components";
 
-export default class JStream<T> {
+export class JStream<T> {
   private srcArray: T[];
   private pipe: IStreamObject[];
   private nextStream!: JStream<any>;
@@ -19,12 +19,7 @@ export default class JStream<T> {
 
   public filter(callback: (i: T) => boolean): JStream<T> {
     this.pipe.push(FilterStreamObject(callback));
-    this.setNext(new JStream<T>());
     return this;
-  }
-
-  public collect(): T[] {
-    return [];
   }
 
   public value(): any[] {
@@ -34,7 +29,7 @@ export default class JStream<T> {
       try {
         values.push(this.callStream());
       } catch (error) {
-        if (error === ErrorType.NoMore) {
+        if (error.message === ErrorType.NoMore.toString()) {
           flag = false;
         }
       }
@@ -57,10 +52,10 @@ export default class JStream<T> {
   protected baseReducer<B>(element: T | B, object: IStreamObject): T | B {
     let transformedElement: T | B = element;
     switch (object.type) {
-      case Type.Filter:
+      case StreamType.Filter:
         transformedElement = this.executeFilter(transformedElement as T, object.callback);
         break;
-      case Type.Map:
+      case StreamType.Map:
         transformedElement = this.executeMap(transformedElement as T, object.callback);
         break;
     }
