@@ -5,11 +5,12 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc && npm run lint",
+    "build": "npm run clean && tsc && npm run lint",
     "clean": "rimraf ./lib",
-    "cleanbuild": "npm run clean && npm run build",
     "lint": "tslint -c tslint.json 'src/**/*.ts'",
-    "tsc": "tsc"
+    "tsc": "tsc",
+    "test": "jest --passWithNoTests --coverage",
+    "publish": "npm run test && npm publish"
   },
   "repository": {
     "type": "git",
@@ -28,9 +29,12 @@
   },
   "homepage": "https://github.com/tonyeu/JStream#readme",
   "devDependencies": {
+    "@types/jest": "^24.0.18",
+    "jest": "^24.9.0",
     "rimraf": "^3.0.0",
-    "tslint": "^5.19.0",
-    "typescript": "^3.6.2",
+    "ts-jest": "^24.1.0",
+    "tslint": "^5.20.0",
+    "typescript": "^3.6.3",
     "typescript-tslint-plugin": "^0.5.4"
   }
 }

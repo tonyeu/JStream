@@ -7,7 +7,7 @@ export class JStream<T> {
   private previousStream!: JStream<any> | undefined;
   constructor(array?: T[]) {
     this.pipe = [];
-    this.srcArray = array || [];
+    this.srcArray = array ? array.slice() : [];
     this.previousStream = undefined;
   }
 
@@ -22,7 +22,11 @@ export class JStream<T> {
     return this;
   }
 
-  public value(): any[] {
+  public toList() {
+    return this.value();
+  }
+
+  protected value(): any[] {
     const values: any[] = [];
     let flag = true;
     while (flag) {
