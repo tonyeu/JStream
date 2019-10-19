@@ -10,7 +10,8 @@
             "multiline": "always",
             "singleline": "never",
             "esSpecCompliant": true
-        }]
+        }],
+        "arrow-parens": false
     },
     "rulesDirectory": []
 }

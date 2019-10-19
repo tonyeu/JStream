@@ -1,25 +1,24 @@
 import { FilterStreamObject, IStreamObject, MapStreamObject, StreamType } from "./components";
 
 export class JStream<T> {
-  private srcArray: T[];
+  private values: T[];
   private pipe: IStreamObject[];
   private nextStream!: JStream<any>;
-  private previousStream!: JStream<any> | undefined;
   constructor(array?: T[]) {
     this.pipe = [];
-    this.srcArray = array ? array.slice() : [];
-    this.previousStream = undefined;
+    this.values = array ? array.slice() : [];
   }
 
   public map<B>(callback: (i: T) => B): JStream<B> {
     this.pipe.push(MapStreamObject(callback));
-    this.setNext(new JStream<B>());
+    this.setNextJStream(new JStream<B>());
     return this.nextStream;
   }
 
   public filter(callback: (i: T) => boolean): JStream<T> {
     this.pipe.push(FilterStreamObject(callback));
-    return this;
+    this.setNextJStream(new JStream<T>());
+    return this.nextStream;
   }
 
   public toList() {
@@ -27,68 +26,49 @@ export class JStream<T> {
   }
 
   protected value(): any[] {
-    const values: any[] = [];
-    let flag = true;
-    while (flag) {
+    const resultsArray: any[] = [];
+
+    this.values.forEach(value => {
       try {
-        values.push(this.callStream());
+        const result = this.execute(value);
+        // filter not pass
+        if (!result) {
+          return;
+        }
+        resultsArray.push(result);
       } catch (error) {
-        if (error.message === ErrorType.NoMore.toString()) {
-          flag = false;
+        // other errors
+        if (error.message === ErrorType.MapFail.toString()) {
+          throw new Error(ErrorType.MapFail);
+        }
+        throw new Error(ErrorType.Unknown);
+      }
+    });
+    return resultsArray;
+  }
+
+  protected combinedReducer<B>(element: T | B, object: IStreamObject) {
+    return this.__baseReducer(element, object);
+  }
+
+  private execute<B>(element: T | B): T | B | undefined {
+    let transformedElement: T | B | undefined = element;
+    // cicle through the
+    for (const idx in this.pipe) {
+      if (this.pipe[idx]) {
+        transformedElement = this.__internalReducer(transformedElement, this.pipe[idx]);
+        if (!transformedElement) {
+          return undefined;
         }
       }
     }
-    return values;
-  }
-
-  protected execute<B>(element: T | B): T | B {
-    let transformedElement: T | B = element;
-    try {
-      this.pipe.forEach((object: IStreamObject) => {
-        transformedElement = this.baseReducer(transformedElement, object);
-      });
-    } catch {
-      throw new Error(ErrorType.Empty);
-    }
     return transformedElement;
   }
 
-  protected baseReducer<B>(element: T | B, object: IStreamObject): T | B {
-    let transformedElement: T | B = element;
-    switch (object.type) {
-      case StreamType.Filter:
-        transformedElement = this.executeFilter(transformedElement as T, object.callback);
-        break;
-      case StreamType.Map:
-        transformedElement = this.executeMap(transformedElement as T, object.callback);
-        break;
-    }
-    return transformedElement;
-  }
-
-  private callStream<B>(): T | B {
-    let val: T | B;
-    if (this.previousStream) {
-      val = this.previousStream.callStream();
-    } else {
-      const tmp: T | undefined = this.srcArray.shift();
-      if (!tmp) {
-        throw new Error(ErrorType.NoMore);
-      } else {
-        val = tmp;
-      }
-    }
-    val = this.execute(val);
-    return val;
-  }
-
-  private executeFilter(element: T, callback: (obj: T) => boolean): T {
+  private executeFilter(element: T, callback: (obj: T) => boolean): T | undefined {
     let transformedElement: T | undefined = element;
     if (element) {
       transformedElement = callback(element) ? element : undefined;
-    }
-    if (!transformedElement) {
-      throw new Error(ErrorType.FilterFail);
     }
     return transformedElement;
   }
@@ -104,19 +84,39 @@ export class JStream<T> {
     return transformedElement;
   }
 
-  private setNext(stream: JStream<any>): void {
+  private setNextJStream(stream: JStream<any>): void {
     this.nextStream = stream;
-    stream.setPrevious(this);
+    this.nextStream.__setPipe(this.pipe);
+    this.nextStream.__setValues(this.values);
   }
 
-  private setPrevious(stream: JStream<any>): void {
-    this.previousStream = stream;
+  private __setPipe(pipe: IStreamObject[]): void {
+    this.pipe = pipe;
+  }
+
+  private __setValues(values: any[]): void {
+    this.values = values;
+  }
+
+  private __internalReducer<B>(element: T | B, object: IStreamObject) {
+    return this.combinedReducer(element, object);
+  }
+
+  private __baseReducer<B>(element: T | B, object: IStreamObject): T | B | undefined {
+    let transformedElement: T | B | undefined = element;
+    switch (object.type) {
+      case StreamType.Filter:
+        transformedElement = this.executeFilter(transformedElement as T, object.callback);
+        break;
+      case StreamType.Map:
+        transformedElement = this.executeMap(transformedElement as T, object.callback);
+        break;
+    }
+    return transformedElement;
   }
 }
 
 enum ErrorType {
-  FilterFail = "Filter Fail",
   MapFail = "Map Fail",
-  Empty = "Empty result",
-  NoMore = "No more values",
+  Unknown = "Desconhecido",
 }
