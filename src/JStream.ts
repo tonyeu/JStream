@@ -1,4 +1,4 @@
-import { FilterStreamObject, IStreamObject, MapStreamObject, StreamType } from "./components";
+import { FilterStreamObject, IStreamObject, MapStreamObject } from "./components";
 
 export class JStream<T> {
   private values: T[];
@@ -27,7 +27,6 @@ export class JStream<T> {
 
   protected value(): any[] {
     const resultsArray: any[] = [];
-
     this.values.forEach(value => {
       try {
         const result = this.execute(value);
@@ -47,37 +46,37 @@ export class JStream<T> {
     return resultsArray;
   }
 
-  protected combinedReducer<B>(element: T | B, object: IStreamObject) {
+  protected combinedReducer(element: T, object: IStreamObject) {
     return this.__baseReducer(element, object);
   }
 
-  private execute<B>(element: T | B): T | B | undefined {
-    let transformedElement: T | B | undefined = element;
-    // cicle through the
-    for (const idx in this.pipe) {
-      if (this.pipe[idx]) {
-        transformedElement = this.__internalReducer(transformedElement, this.pipe[idx]);
-        if (!transformedElement) {
-          return undefined;
+  private execute<B>(element: T): T | B | unknown {
+    let transformedElement: T | B | unknown = element;
+    // cicle through the pipe
+    for (let i = 0; ; i++) {
+      try {
+        transformedElement = this.__internalReducer(transformedElement as T, this.pipe[i]);
+      } catch (error) {
+        // map error
+        if (error.message === ErrorType.MapFail.toString()) {
+          throw new Error(ErrorType.MapFail);
         }
+        // pipe index overflow
+        return transformedElement;
+      }
+      // filter result
+      if (!transformedElement) {
+        return undefined;
       }
     }
-    return transformedElement;
   }
 
   private executeFilter(element: T, callback: (obj: T) => boolean): T | undefined {
-    let transformedElement: T | undefined = element;
-    if (element) {
-      transformedElement = callback(element) ? element : undefined;
-    }
-    return transformedElement;
+    return callback(element) ? element : undefined;
   }
 
-  private executeMap<B>(element: T, callback: (obj: T) => B): B {
-    let transformedElement: B | undefined;
-    if (element) {
-      transformedElement = callback(element);
-    }
+  private executeMap<B>(element: T, callback: (obj: T) => T | B): T | B {
+    const transformedElement: T | B | undefined = callback(element);
     if (!transformedElement) {
       throw new Error(ErrorType.MapFail);
     }
@@ -98,21 +97,15 @@ export class JStream<T> {
     this.values = values;
   }
 
-  private __internalReducer<B>(element: T | B, object: IStreamObject) {
+  private __internalReducer(element: T, object: IStreamObject) {
+    if (!element) {
+      return undefined;
+    }
     return this.combinedReducer(element, object);
   }
 
-  private __baseReducer<B>(element: T | B, object: IStreamObject): T | B | undefined {
-    let transformedElement: T | B | undefined = element;
-    switch (object.type) {
-      case StreamType.Filter:
-        transformedElement = this.executeFilter(transformedElement as T, object.callback);
-        break;
-      case StreamType.Map:
-        transformedElement = this.executeMap(transformedElement as T, object.callback);
-        break;
-    }
-    return transformedElement;
+  private __baseReducer<B>(element: T, object: IStreamObject): T | B | undefined {
+    return this[object.type](element, object.callback);
   }
 }
 

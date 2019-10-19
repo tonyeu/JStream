@@ -12,5 +12,5 @@ export {
   IMapStreamObject,
   IFilterStreamObject,
   MapStreamObject,
-  StreamType,
+  StreamObjectType,
 } from "./components";

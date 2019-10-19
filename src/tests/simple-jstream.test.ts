@@ -24,7 +24,7 @@ test("Testing stream time execution, expect slower", () => {
   endTime = Date.now();
   const normalTime = endTime - startTime;
 
-  expect(fullTime).toBeLessThan(normalTime);
+  // expect(fullTime).toBeLessThan(normalTime);
   expect(fullTime).toBeGreaterThan(normalTime);
 });
 
